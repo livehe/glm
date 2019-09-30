@@ -1,0 +1,108 @@
+library(investr)
+library(glmnet)
+library(matlib)
+
+summary(glm(cbind(y,n-y) ~ ldose, binomial, data=beetle))
+
+summary(beetle)
+beetle
+
+x <- model.matrix(~ldose, data = beetle)
+
+myglm2 <- function(formula, data) {
+
+  X <- model.matrix(formula, data = data)
+  
+  beta0 <- t(cbind(2.2,2.2))
+  beta <- t(cbind(1,1))
+  n = data$n
+  y = data$y
+
+  while (TRUE) {
+    beta0 <- beta
+
+    
+    pi <- exp(X %*% beta0)/(rep(1, length(beta0)) + exp(X %*% beta0))
+    
+    
+    score <- t(cbind(0,0))
+    fisher <- matrix(0, 2, 2)
+    for (i in 1:length(data$y)) {
+      score = score + X[i,] * (y[i] - n[i]*pi[i])
+      fisher = fisher + X[i,] %*% t(X[i,]) * n[i] * pi[i] * (1 - pi[i])
+    }
+    beta <- beta0 + solve(fisher) %*% score
+    
+    print(beta)
+    print(beta0)
+    print(norm(beta-beta0) < 0.000000001)
+    
+    if (norm(beta-beta0) < 0.000000001) {
+      
+      break
+    }
+  }
+  return(beta)
+}
+
+
+myglm <- function(formula, data) {
+  #here we use fisher's algorithm to calculate the estimated parameters
+  X <- model.matrix(formula, data = data)
+  beta <- c(0,0)
+  for (i in 1:10) {
+    pi <- 1 / (1 + exp(-X %*% beta))
+    score <- c(0,0)
+    fisher <- matrix(0,2,2)
+    score <- t(X) %*% (data$y-data$n*pi)
+    for (i in 1:8) {
+      fisher <- fisher + X[i,] %*% t(X[i,]) * data$n[i] * pi[i] *(1 - pi[i])
+    }
+    h <- solve(fisher)
+    beta <- beta + h %*% score
+
+   
+  }
+  
+  #we are now going to find the deviance between
+  #the saturated model and the fitted model
+  
+  ybar = data$y/data$n
+  pihat <- 1 / (1 + exp(-X %*% beta))
+
+
+  deviance <- 2*sum(log(ybar^data$y*(1-ybar)^(data$n-data$y))-log(pihat^data$y*(1-pihat)^(data$n-data$y)))
+
+  D <- sum(dbinom(data$y, size = data$n, prob = data$y/data$n, log = TRUE) - dbinom(data$y, size = data$n, prob = pihat, log = TRUE))
+  
+  print(D)
+  print(deviance)
+  
+  return(list(beta, D))
+}
+
+
+myglm(formula= ~ldose, data=beetle)
+
+
+umsummary(glm(cbind(y,n-y) ~ ldose, binomial, data=beetle))
+
+
+x[1,]
+x
+t(cbind(1,1))
+beetle$n
+beta0 <- t(cbind(1,3))
+dim(beta0)
+
+beta0 + x[1,]
+x[1,]
+
+pi <- exp(X %*% beta0)/(rep(1, length(beta0)) + exp(X %*% beta0))
+pi 
+
+
+pi <- cbind(0,0,0,0,0,0,0,0)
+for (i in 1:8) {
+  pi[i] = exp(X[i] * beta0)/(1 + exp(X[i] * beta0))
+}

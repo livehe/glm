@@ -1,0 +1,52 @@
+library(investr)
+library(glmnet)
+library(matlib)
+
+myglm <- function(formula, data) {
+  #here we use fisher's algorithm to calculate the estimated parameters
+  X <- model.matrix(formula, data = data)
+  beta <- c(0,0)
+  for (i in 1:10) {
+    pi <- 1 / (1 + exp(-X %*% beta))
+    score <- c(0,0)
+    fisher <- matrix(0,2,2)
+    score <- t(X) %*% (data$y-data$n*pi)
+    for (i in 1:8) {
+      fisher <- fisher + X[i,] %*% t(X[i,]) * data$n[i] * pi[i] *(1 - pi[i])
+    }
+    h <- solve(fisher)
+    beta <- beta + h %*% score
+
+   
+  }
+  
+  #we are now going to find the deviance
+  
+  ybar = data$y/data$n
+  pihat <- 1 / (1 + exp(-X %*% beta))
+
+
+  deviance <- 2*sum(log(ybar^data$y*(1-ybar)^(data$n-data$y))-log(pihat^data$y*(1-pihat)^(data$n-data$y)))
+
+
+  return(list(beta, deviance))
+}
+
+
+noe <- myglm(formula= ~ldose, data=beetle)
+
+
+summary(glm(cbind(y,n-y) ~ ldose, binomial, data=beetle))
+
+
+
+goodnessOfFit <- function(deviance, alpha, n, p0) {
+  #p0 is number of parameters in fitted models
+  chi <- qchisq(1-alpha, df=n-p0)
+  print(deviance)
+  print(chi)
+  return(deviance > chi) #gets TRUE if reject H0
+  
+}
+
+goodnessOfFit(noe[2], 0.05, 8, 2)

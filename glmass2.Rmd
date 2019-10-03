@@ -29,14 +29,6 @@ opts_chunk$set(tidy.opts = list(width.cutoff = 68), tidy = TRUE, warning = FALSE
 
 Wikipedia's *List of highest mountains* (https://en.wikipedia.org/wiki/List_of_highest_mountains_on_Earth) lists 118 of the world's highest mountains, along with some properties of each one, including the number of successful and failed attempts at reaching the summit as of 2004. In this problem, we will consider a data set consisting of the height (in meters), topographic prominence (also in meters), number of successful ascents and number of failed attempts for 113 of the mountains on the list. The mountains Mount Everest (height 8848, prominence 8848), Muztagh Ata, Ismoil Somoni Peak, and Jengish Chokusu/TÃ¶mÃ¼r/Pk Pobeda are excluded from the dataset because of incomplete data. In addition the mountain Chogolisa (height 7665, prominence 1624) is removed from the data set to be used for prediction.
 
-In the following, let $y_i$ be the number of successful ascents, and let $n_i$ be the total number of attempts (sum of successful and failed) of the $i$th mountain. Use a binary regression with logit link to model the probability of success. That is,
-
-1. Model for response: $Y_i \sim \text{Bin}(n_i, \pi_i) \quad \text{for} \  i = 1,\ldots,113$
-2. Linear predictor: $\eta_i = \mathbf{x}_i^T\boldsymbol{\beta}$
-3. Link function: $\eta_i = \ln \left(\frac{\pi_i}{1-\pi_i}\right)$
-
-where $\mathbf{x}_i$ is $p$ dimensional column vector of covariates for observation $i$, and $\boldsymbol\beta$ is the vector of regression parameters.
-
 ## a) 
 \textbf{Fit a glm modelling how the probability that an attempt at reaching a particular summit depends on its height and prominence. Introduce necessary mathematical notation and give a brief summary of the mathematical assumption of the model and discuss if these assumptions seem reasonable. Also explain the rationale behind your choice of link function.}
 

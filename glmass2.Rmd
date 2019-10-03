@@ -1,30 +1,93 @@
+--- 
+title: "TMA4315 Generalized Linear Models" 
+subtitle: "Compulsory exercise 2: Logistic regression and Poisson regression" 
+author: "Liv Elise Herstad and Julie Berg"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: # 3rd letter intentation hierarchy
+  # html_document:
+  #   toc: true
+  #   toc_float: true
+  #   toc_depth: 2
+  pdf_document:
+   toc: false
+   toc_depth: 2
+
 ---
-title: "glmass2"
-output: html_document
----
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include = FALSE}
+library(formatR)
+showsol <- FALSE
+library(knitr)
+opts_chunk$set(tidy.opts = list(width.cutoff = 68), tidy = TRUE, warning = FALSE, error = FALSE, message = FALSE, echo = TRUE)
+
+
 ```
 
-## R Markdown
 
-## Liv e duM
+# Part 1: Logistic regression
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Wikipedia's *List of highest mountains* (https://en.wikipedia.org/wiki/List_of_highest_mountains_on_Earth) lists 118 of the world's highest mountains, along with some properties of each one, including the number of successful and failed attempts at reaching the summit as of 2004. In this problem, we will consider a data set consisting of the height (in meters), topographic prominence (also in meters), number of successful ascents and number of failed attempts for 113 of the mountains on the list. The mountains Mount Everest (height 8848, prominence 8848), Muztagh Ata, Ismoil Somoni Peak, and Jengish Chokusu/TÃ¶mÃ¼r/Pk Pobeda are excluded from the dataset because of incomplete data. In addition the mountain Chogolisa (height 7665, prominence 1624) is removed from the data set to be used for prediction.
 
-```{r cars}
-summary(cars)
+In the following, let $y_i$ be the number of successful ascents, and let $n_i$ be the total number of attempts (sum of successful and failed) of the $i$th mountain. Use a binary regression with logit link to model the probability of success. That is,
+
+1. Model for response: $Y_i \sim \text{Bin}(n_i, \pi_i) \quad \text{for} \  i = 1,\ldots,113$
+2. Linear predictor: $\eta_i = \mathbf{x}_i^T\boldsymbol{\beta}$
+3. Link function: $\eta_i = \ln \left(\frac{\pi_i}{1-\pi_i}\right)$
+
+where $\mathbf{x}_i$ is $p$ dimensional column vector of covariates for observation $i$, and $\boldsymbol\beta$ is the vector of regression parameters.
+
+## a) 
+\textbf{Fit a glm modelling how the probability that an attempt at reaching a particular summit depends on its height and prominence. Introduce necessary mathematical notation and give a brief summary of the mathematical assumption of the model and discuss if these assumptions seem reasonable. Also explain the rationale behind your choice of link function.}
+
+$y_i$: number of successful ascents for $i$th mountain
+$n_i$: total number of trials (successful ascend + failure) for $i$th mountain
+
+We choose binary regression because the response variable $Y_i$ is binomially distributed and categorical. For link function we choose logit link as it is the natural log of the odds that $Y_i$ take on one of the categories, and forms a somewhat linear relationship with the variables. 
+
+Our model choice for the probability of success is $Y_i \sim \text{Bin}(n_i, \pi_i) \quad \text{for} \  i = 1,\ldots,113$ with linear predictor $\eta_i = \mathbf{x}_i^T\boldsymbol{\beta}$ and link function $\ln \left(\frac{\pi_i}{1-\pi_i} \right)$, where $\mathbf{x}_i$ is the vector consisting of the covariates for the $i$th observation, and $\boldsymbol{\beta}$ is the vector of regression parameters. 
+
+```{r}
+glm(cbind(success, fail) ~ height + prominence, data = mount, family = "binomial")
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+## b) 
+\textbf{Based on the observed deviance, is there any evidence of overdispersion in the data? What are potential sources of overdispersion in the data? If necessary, refit a model using a quasi-likelihood model.}
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## c) 
+\textbf{Using the ordinary AIC criteria or QAIC=−2l(θ̂ )/ϕ̂ +2p, choose a best model for the data. Burnham and Anderson recommends that ϕ̂  here should be a common estimate of the overdispersion parameter under the full model (the model including all covariates). Also, ϕ counts as one parameter. Using these criteria, decide which covariates you want to include in the model. You'll need to compute QAIC values manually by fitting non-quasi-likelihood models to get l(θ̂ ) as R doesn't include QAIC by default.}
+
+
+## d) 
+\textbf{Also test the significance of each term in the model using both Wald tests and likelihood ratio/F- tests and comment on any differences you see (summary and drop1). Given your choice of link function, give interpretations of the estimated regression slope parameters, in language that you would use to communicate to non-statisticians.}
+
+## e)
+\textbf{Examine the model fit by plotting the deviance residuals against fitted values and against each covariate (residuals( , type="deviance") and fitted( )).}
+
+## f)
+\textbf{The height and (by definition) the prominence of Mount Everest are both 8848 meters. Compute a prediction for the probability that an attempt at this summit will be successful. First consider the predicted value and its variance on the scale of the linear predictor (vcov gives you the estimate variance matrix of β̂ ). Also compute a 95% confidence interval for the predicted value on this scale based on asymptotic normality of β̂ . Transform this confidence interval to the probability scale and explain the theory behind the transformation you're using.}
+
+
+\newpage
+# Part 2: Poisson regression -- Eliteserien 2018
+
+
+
+The data set consists of four columns:
+
+* `home`: the name of the home team
+* `away`: the name of the away team
+* `yh`: the score of the home team
+* `ya`: the score of the away team
+
+
+## a)
+
+## b) 
+
+## c) 
+
+## d) 
+

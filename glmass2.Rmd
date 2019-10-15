@@ -3,14 +3,9 @@ title: "TMA4315 Generalized Linear Models"
 subtitle: "Compulsory exercise 2: Logistic regression and Poisson regression" 
 author: "Liv Elise Herstad and Julie Berg"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: # 3rd letter intentation hierarchy
-  # html_document:
-  #   toc: true
-  #   toc_float: true
-  #   toc_depth: 2
-  pdf_document:
-   toc: false
-   toc_depth: 2
+output:
+  # html_document
+  pdf_document
 
 ---
 
@@ -27,10 +22,10 @@ opts_chunk$set(tidy.opts = list(width.cutoff = 68), tidy = TRUE, warning = FALSE
 # Part 1: Logistic regression
 
 
-Wikipedia's *List of highest mountains* (https://en.wikipedia.org/wiki/List_of_highest_mountains_on_Earth) lists 118 of the world's highest mountains, along with some properties of each one, including the number of successful and failed attempts at reaching the summit as of 2004. In this problem, we will consider a data set consisting of the height (in meters), topographic prominence (also in meters), number of successful ascents and number of failed attempts for 113 of the mountains on the list. The mountains Mount Everest (height 8848, prominence 8848), Muztagh Ata, Ismoil Somoni Peak, and Jengish Chokusu/TÃ¶mÃ¼r/Pk Pobeda are excluded from the dataset because of incomplete data. In addition the mountain Chogolisa (height 7665, prominence 1624) is removed from the data set to be used for prediction.
+Wikipedia's *List of highest mountains* (https://en.wikipedia.org/wiki/List_of_highest_mountains_on_Earth) lists 118 of the world's highest mountains, along with some properties of each one, including the number of successful and failed attempts at reaching the summit as of 2004. In this problem, we will consider a data set consisting of the height (in meters), topographic prominence (also in meters), number of successful ascents and number of failed attempts for 113 of the mountains on the list. The mountains Mount Everest (height 8848, prominence 8848), Muztagh Ata, Ismoil Somoni Peak, and Jengish Chokusu/.../Pk Pobeda are excluded from the dataset because of incomplete data. In addition the mountain Chogolisa (height 7665, prominence 1624) is removed from the data set to be used for prediction.
 
 ## a) 
-\textbf{Fit a glm modelling how the probability that an attempt at reaching a particular summit depends on its height and prominence. Introduce necessary mathematical notation and give a brief summary of the mathematical assumption of the model and discuss if these assumptions seem reasonable. Also explain the rationale behind your choice of link function.}
+Fit a glm modelling how the probability that an attempt at reaching a particular summit depends on its height and prominence. Introduce necessary mathematical notation and give a brief summary of the mathematical assumption of the model and discuss if these assumptions seem reasonable. Also explain the rationale behind your choice of link function.
 
 $y_i$: number of successful ascents for $i$th mountain
 $n_i$: total number of trials (successful ascend + failure) for $i$th mountain
@@ -40,30 +35,100 @@ We choose binary regression because the response variable $Y_i$ is binomially di
 Our model choice for the probability of success is $Y_i \sim \text{Bin}(n_i, \pi_i) \quad \text{for} \  i = 1,\ldots,113$ with linear predictor $\eta_i = \mathbf{x}_i^T\boldsymbol{\beta}$ and link function $\ln \left(\frac{\pi_i}{1-\pi_i} \right)$, where $\mathbf{x}_i$ is the vector consisting of the covariates for the $i$th observation, and $\boldsymbol{\beta}$ is the vector of regression parameters. 
 
 ```{r}
-glm(cbind(success, fail) ~ height + prominence, data = mount, family = "binomial")
+filepath <- "https://www.math.ntnu.no/emner/TMA4315/2018h/mountains"
+mount <- read.table(file = filepath, header = TRUE, col.names = c("height", 
+                                            "prominence", "fail", "success"))
+attach(mount) 
+model1 <- glm(cbind(success, fail) ~ height + prominence, data = mount, family = "binomial")
+summary(model1) #AIC = 686.03
 ```
 
 
 ## b) 
-\textbf{Based on the observed deviance, is there any evidence of overdispersion in the data? What are potential sources of overdispersion in the data? If necessary, refit a model using a quasi-likelihood model.}
+Based on the observed deviance, is there any evidence of overdispersion in the data? What are potential sources of overdispersion in the data? If necessary, refit a model using a quasi-likelihood model.
+
+```{r}
+deviance <- summary(model1)$deviance
+deviance
+degfree1 <- summary(model1)$df.residual
+chisquared <- qchisq(1-0.05, df=113-3) # chi-squared = 135.4802
+chisquared
+```
+
+```{r}
+model2 <- glm(cbind(success, fail) ~ height + prominence, data = mount, family = "quasibinomial")
+summary(model2) #no AIC
+```
 
 
 ## c) 
-\textbf{Using the ordinary AIC criteria or QAIC=−2l(θ̂ )/ϕ̂ +2p, choose a best model for the data. Burnham and Anderson recommends that ϕ̂  here should be a common estimate of the overdispersion parameter under the full model (the model including all covariates). Also, ϕ counts as one parameter. Using these criteria, decide which covariates you want to include in the model. You'll need to compute QAIC values manually by fitting non-quasi-likelihood models to get l(θ̂ ) as R doesn't include QAIC by default.}
+Using the ordinary AIC criteria, choose a best model for the data. Burnham and Anderson recommends that $\hat{\phi}$ here should be a common estimate of the overdispersion parameter under the full model (the model including all covariates). Also, $\phi$ counts as one parameter. Using these criteria, decide which covariates you want to include in the model. You'll need to compute QAIC values manually by fitting non-quasi-likelihood models to get $l(\hat{\theta})$ as R doesn't include QAIC by default.
+
+```{r}
+disp <- summary(model2)$dispersion
+loglik1 <- logLik(model1)
+QAIC_2 <- -2*loglik1/disp +2*4 #p = 4
+QAIC_2 #188.0638
+```
+
+```{r}
+model3 <- glm(cbind(success, fail) ~ height, data = mount, family = "quasibinomial")
+summary(model3) #no AIC
+
+loglik3 <- sum(dbinom(success, success+fail,fitted(model3), log=TRUE))
+QAIC_3 <- -2*loglik3/disp +2*3 #p = 3
+QAIC_3 #189.9345
+```
+
+```{r}
+model4 <- glm(cbind(success, fail) ~ prominence, data = mount, family = "quasibinomial")
+summary(model4) #no AIC
+
+loglik4 <- sum(dbinom(success, success+fail,fitted(model4), log=TRUE))
+QAIC_4 <- -2*loglik4/disp +2*3 #p = 3
+QAIC_4 #223.0717
+```
+
+```{r}
+model5 <- glm(cbind(success, fail) ~ 1, data = mount, family = "quasibinomial")
+summary(model5) #no AIC
+
+loglik5 <- sum(dbinom(success, success+fail,fitted(model5), log=TRUE))
+QAIC_5 <- -2*loglik5/disp +2*2 #p = 2
+QAIC_5 #263.66
+```
 
 
 ## d) 
-\textbf{Also test the significance of each term in the model using both Wald tests and likelihood ratio/F- tests and comment on any differences you see (summary and drop1). Given your choice of link function, give interpretations of the estimated regression slope parameters, in language that you would use to communicate to non-statisticians.}
+Also test the significance of each term in the model using both Wald tests and likelihood ratio/F-tests and comment on any differences you see (summary and drop1). Given your choice of link function, give interpretations of the estimated regression slope parameters, in language that you would use to communicate to non-statisticians.
+
+```{r, eval=TRUE, echo=FALSE}
+droppit_F <- drop1(model2, test="F") #quasibinomial F-test
+droppit_F
+waldqb <- summary(model2) #Wald: p-value from summary
+waldqb
+```
+
+The significance tests for each term is presented in the R-code above. We see from both the F-test and the Wald test that the covariate 'prominence' is less significant than covariate 'height'. The p-value from the F-test is 0.05145 and the p-value from the Wald test is 0.0518, which means it is right above the standard threshold $\alpha = 0.05$ of rejection. 
 
 ## e)
-\textbf{Examine the model fit by plotting the deviance residuals against fitted values and against each covariate (residuals( , type="deviance") and fitted( )).}
+Examine the model fit by plotting the deviance residuals against fitted values and against each covariate (residuals( , type="deviance") and fitted( )).
+
+```{r}
+resid_model2 <- residuals(model2, type="deviance")
+fit2 <- fitted(model2)
+
+plot(fit2,resid_model2) #residuals vs. chosen model
+plot(height,resid_model2) #residuals vs. covariance height
+plot(prominence,resid_model2) #residuals vs. covaiate prominence
+```
 
 ## f)
-\textbf{The height and (by definition) the prominence of Mount Everest are both 8848 meters. Compute a prediction for the probability that an attempt at this summit will be successful. First consider the predicted value and its variance on the scale of the linear predictor (vcov gives you the estimate variance matrix of β̂ ). Also compute a 95% confidence interval for the predicted value on this scale based on asymptotic normality of β̂ . Transform this confidence interval to the probability scale and explain the theory behind the transformation you're using.}
+The height and (by definition) the prominence of Mount Everest are both 8848 meters. Compute a prediction for the probability that an attempt at this summit will be successful. First consider the predicted value and its variance on the scale of the linear predictor (vcov gives you the estimate variance matrix of $\hat\beta$ ). Also compute a 95% confidence interval for the predicted value on this scale based on asymptotic normality of $\hat\beta$ . Transform this confidence interval to the probability scale and explain the theory behind the transformation you're using.
 
 
 \newpage
-# Part 2: Poisson regression -- Eliteserien 2018
+# Part 2: Eliteserien 2018
 
 
 

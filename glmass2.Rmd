@@ -127,24 +127,95 @@ plot(prominence,resid_model2) #residuals vs. covaiate prominence
 The height and (by definition) the prominence of Mount Everest are both 8848 meters. Compute a prediction for the probability that an attempt at this summit will be successful. First consider the predicted value and its variance on the scale of the linear predictor (vcov gives you the estimate variance matrix of $\hat\beta$ ). Also compute a 95% confidence interval for the predicted value on this scale based on asymptotic normality of $\hat\beta$ . Transform this confidence interval to the probability scale and explain the theory behind the transformation you're using.
 
 
+
 \newpage
 # Part 2: Eliteserien 2018
 
+In this problem we will use a generalized linear model to analyse part of the 2018 results from the Norwegian elite football league.
 
+Each match is represented by pairs of consecutive rows in the data frame; the first row below contains the number of goals scored by Molde against Sandefjord fotball with Molde playing at their home field, and the second row contains the number of goals by Sandefjord fotball (not playing at their home field) against Molde in the same match. The covariates attach and defence will by default encoded as factors, both with 16 levels and with treatment contrasts and with BodoeGlimt by default chosen as the reference category. The variable 'home' will similarly be encoded as a factor with two levels. 
 
-The data set consists of four columns:
+The data is incomplete in that the number of goals for some matches were not available at the time the data were recorded. Our aim is to fit a model to the available data and then simulate the remaining matches using the fitted model. Based on these simulations we will estimate the probabilities of each team winning the whole league. 
 
-* `home`: the name of the home team
-* `away`: the name of the away team
-* `yh`: the score of the home team
-* `ya`: the score of the away team
-
+```{r}
+long <- read.csv("https://www.math.ntnu.no/emner/TMA4315/2019h/eliteserie.csv")
+```
 
 ## a)
+```{r}
+mod <- glm(goals ~ attack + defence + home, poisson, data=long)
+```
+
+The assumption of Poisson regression fits well, as the observations $y_i \in \{1, 2, \dots,32 \}$ are count data, indicating how often some event of interest has been observed in a certain period of time. The event is scoring a goal in a 90 minute football game. In a Poisson model it is assumed that the $y_i$ are independently $\text{Po}(\lambda_i)$ distributed, which is reasonable to assume. 
+
+For this model, the response variable is number of goals per game for each team. Reading from the data, there are 16 football teams. The covariates in this model are 'attack', 'defence' and 'home', where 'attack' and 'defence' has the 16 football teams as levels, and 'home' has two levels (yes or no). 
+
+The level 'BodoeGlimt' is chosen as the reference category, meaning that it is included in the intercept. Making 15 levels? 
+
+Given the chosen Poisson regression, the linear predictor $\eta_i =\textbf{x}_i^T\boldsymbol{\beta}$ is connected with the rate $\lambda_i$ via 
+$$\lambda_i = \text{exp}(\eta_i) = \text{exp}(\beta_0 + \beta_1x_{i1} + \dots + \beta_{32}x_{i32})$$ 
+where $\lambda_i$ is the expected number of goals scored by the chosen team. This can be written in log-linear form:
+$$
+\ln\lambda_i = \eta_i = \beta_0 + \beta_1x_{i1} + \dots + \beta_{32}x_{i32}
+$$ 
+and more neatly written as 
+
+$$
+\ln\lambda_i = \mu + \alpha_{j(i)} + \beta_{k(i)} + \gamma_{h(i)}
+$$
+where $\mu$ is the intercept, $\alpha_{j(i)}$ is the attack coefficient for team j in observation i, $\beta_{k(i)}$ is the defence coefficient for team k $\neq$ j in observation i, and $\gamma_{h(i)}$ is the home coefficient dependent on which team is playing their home field (i.e. h $\eq$ j or h $\eq$ k). 
+
+The parameters associated with each level of 'attack', 'defence' and 'home' say something about the increase or decrease of the log-response. 'attack' has 16 levels, where each parameter indicates if that team's attack parameter will increase or decrease the log-response if included. Same goes for 'defence', but it is a bit trickier to think about. The lower defence parameter, the better the team. That's because the Poisson model calculates the expected number of goals for one team. That means the attack parameter for that team is included, home parameter is included and the defence parameter of the opposing team is inlcuded as well. If the opposing team's defence parameter is small (or negative) it will not add much to the expected number of goals in the end (it might even subtract). That's why a higher value of attack parameter indicates more goals for the team, and a smaller value of defence parameter indicates a tougher opponent team. 
 
 ## b) 
+\textit{If good teams tend to have both strong defence and strong attack capabilities, what kind of association would you expect between the above parameters? Is there any evidence of such a relationship between the parameters? You may want to use cor.test to test for this.}
+
+If a team has strong attack capabilities, the parameter for attack of the team will be large, and if they have strong defence capabilities the defence parameter will be small (or negative). 
+
+Correlation measures the tendency for the variables to fluctuate. The value of the correlation coefficient is between $-1$ and $+1$. In general, a positive correlation will indicate that an increase (decrease) in one variable leads to an increase in the second variable, whereas a negative correlation indicates that an increase in one variable leads to a decrease in the other. 
+
+We calculate the correlation between the parameters attack and defence, and show the result below.
+
+```{r}
+correlation <- cor.test(mod$coefficients[2:16] , mod$coefficients[17:31] , data=long)
+correlation
+```
+
+As you can see, the correlation is $-0.055$, which is a medium negative correlation value on the scale from [-1,0]. 
+
+LIV FORKLAR PLS halp
+
 
 ## c) 
+\textit{Based on the observed deviance, is there evidence of overdispersion in the data? What would be possible sources of over- and underdispersion in this example?}
+
+To check for overdispersion in the data we use the trusted Chi squared test: if the deviance is larger than the Chi squared 0.05 and 352 degrees of freedom quantile, there is evidence of overdispersion in the model.
+
+The calculations are shown below:
+
+```{r}
+d_mod2 <- summary(mod)$deviance
+d_mod2
+chisq_mod2 <- qchisq(1-0.05, df=352)
+chisq_mod2
+
+# Alternative method:
+d_mod2 / 352 #divide deviance by df, if close to 1 --> not overdispersion
+```
+
+Since $\text{D} \ngtr \chi^2_{0.05,352}$, we conclude that there is no overdispersion in the data, and we do not need to introduce a quasipoisson model. The alternative method of dividing the deviance by the degrees of freedom is close to one, indicating that there indeed is no sign of overdispersion. 
+
+Possible sources of over- and underdispersion in this example could be
+
+idk
 
 ## d) 
+Lag masse ting
 
+##e)
+Expected number of goals
+```{r}
+#predict(mod, newdata, type="response")
+```
+
+##f)

@@ -25,14 +25,33 @@ opts_chunk$set(tidy.opts = list(width.cutoff = 68), tidy = TRUE, warning = FALSE
 Wikipedia's *List of highest mountains* (https://en.wikipedia.org/wiki/List_of_highest_mountains_on_Earth) lists 118 of the world's highest mountains, along with some properties of each one, including the number of successful and failed attempts at reaching the summit as of 2004. In this problem, we will consider a data set consisting of the height (in meters), topographic prominence (also in meters), number of successful ascents and number of failed attempts for 113 of the mountains on the list. The mountains Mount Everest (height 8848, prominence 8848), Muztagh Ata, Ismoil Somoni Peak, and Jengish Chokusu/.../Pk Pobeda are excluded from the dataset because of incomplete data. In addition the mountain Chogolisa (height 7665, prominence 1624) is removed from the data set to be used for prediction.
 
 ## a) 
-Fit a glm modelling how the probability that an attempt at reaching a particular summit depends on its height and prominence. Introduce necessary mathematical notation and give a brief summary of the mathematical assumption of the model and discuss if these assumptions seem reasonable. Also explain the rationale behind your choice of link function.
+\textit{Fit a glm modelling how the probability that an attempt at reaching a particular summit depends on its height and prominence. Introduce necessary mathematical notation and give a brief summary of the mathematical assumption of the model and discuss if these assumptions seem reasonable. Also explain the rationale behind your choice of link function.}
 
 $y_i$: number of successful ascents for $i$th mountain
 $n_i$: total number of trials (successful ascend + failure) for $i$th mountain
 
-We choose binary regression because the response variable $Y_i$ is binomially distributed and categorical. For link function we choose logit link as it is the natural log of the odds that $Y_i$ take on one of the categories, and forms a somewhat linear relationship with the variables. 
+We choose binary regression because the response variable $Y_i$ is binomially distributed and categorical. 
+The choice of an appropriate link function is dependent on the type of response variable. Since we are dealing with a binary response model, we use the logit link function, obtaining the Logit model. 
+The logit link is the natural log of the odds that $Y_i$ take on one of the categories, and forms a somewhat linear relationship with the predictors. 
 
-Our model choice for the probability of success is $Y_i \sim \text{Bin}(n_i, \pi_i) \quad \text{for} \  i = 1,\ldots,113$ with linear predictor $\eta_i = \mathbf{x}_i^T\boldsymbol{\beta}$ and link function $\ln \left(\frac{\pi_i}{1-\pi_i} \right)$, where $\mathbf{x}_i$ is the vector consisting of the covariates for the $i$th observation, and $\boldsymbol{\beta}$ is the vector of regression parameters. 
+Our model choice for the probability of success is $Y_i \sim \text{Bin}(n_i, \pi_i) \quad \text{for} \  i = 1,\ldots,113$ with linear predictor $\eta_i = \mathbf{x}_i^T\boldsymbol{\beta}$ and link function $\ln \left(\frac{\pi_i}{1-\pi_i} \right)$, where $\mathbf{x}_i$ is the vector consisting of the covariates 'height' and 'prominence' for the $i$th observation, and $\boldsymbol{\beta}$ is the vector of regression parameters. 
+
+The model then looks like this:
+$$
+\ln \left(\frac{\pi_i}{1-\pi_i} \right) = \eta = \beta_0 + \beta_1x_1 + \beta_2x_2
+$$
+An increase in one unit of one of the predictors (while keeping the other one constant) would result in the log of the odds to increase by the respective parameter. To get a better understanding about the effect of the predictor, it is wise to take the exponent of the linear predictor, like this:
+
+$$
+\frac{\pi_i}{1-\pi_i} = \exp(\eta) = \exp(\beta_0)\exp(\beta_1x_1)\exp(\beta_2x_2)
+$$
+We get the probability of $Y_i = 1$, i.e. the probability of succeeding in climbing mountain $i$ by 
+
+$$
+P(Y_i = 1) = \pi_i = \frac{\mathbf{x}_i^T\boldsymbol{\beta}}{1+\mathbf{x}_i^T\boldsymbol{\beta}}
+$$
+
+See code for the fitted glm model
 
 ```{r}
 filepath <- "https://www.math.ntnu.no/emner/TMA4315/2018h/mountains"
@@ -45,8 +64,11 @@ summary(model1) #AIC = 686.03
 
 
 ## b) 
-Based on the observed deviance, is there any evidence of overdispersion in the data? What are potential sources of overdispersion in the data? If necessary, refit a model using a quasi-likelihood model.
+\textit{Based on the observed deviance, is there any evidence of overdispersion in the data? What are potential sources of overdispersion in the data? If necessary, refit a model using a quasi-likelihood model.}
 
+Overdispersion is the presence of greater variability in a data sat than would be expected based on a statistical model. 
+
+Checking for overdispersion by doing a Chi-squared test. \textcolor{red}{why can we use chi-sq}. There are signs of overdispersion if the deviance, D, of a model is greater than the $\chi^2$ with $110$ degrees of freedom. 
 ```{r}
 deviance <- summary(model1)$deviance
 deviance
@@ -55,11 +77,24 @@ chisquared <- qchisq(1-0.05, df=113-3) # chi-squared = 135.4802
 chisquared
 ```
 
+As $D \gt \chi^2_{110}$ we see that there is overdispersion in the data. One can also divide the deviance, D, by the number of degrees of freedom, and if the number is close to 1 there is no or little to no sign of overdispersion. 
+
+```{r}
+deviance/110
+```
+
+Since $\frac{D}{110} \not\approx 1$ our second test also suggest that there is overdispersion in the data. 
+
+Potential sources for overdispersion can, in general, be unobserved heterogeneity and possitive correlation between individual binary observations of $Y$. For our data, there is quite possible a lot of heterogeneity, meaning there are many differences in our sample. When people are climbing mountains with different heights and different prominences, there is bound to be some differences in what different people are able to do. There could also be some correlation between the individual binary observations, as people tend to climb mountains in groups. If one person has to stop because of different reasons (maybe lack of fitness or simply an injury), there is a big chance the entire group quits or atleast some quit. 
+
+Whatever the reasons, we do have overdispersion in our data and we therefore fit a Quasibinomial model instead of a Binomial model to the data, and make a new glm modelling the probability of reaching a mountain's summit. 
+
 ```{r}
 model2 <- glm(cbind(success, fail) ~ height + prominence, data = mount, family = "quasibinomial")
 summary(model2) #no AIC
 ```
 
+As we can see from the summary of the model, there is no QAIC calculated for the Quasibinomial model. The QAIC for this model is calculated under task c). 
 
 ## c) 
 Using the ordinary AIC criteria, choose a best model for the data. Burnham and Anderson recommends that $\hat{\phi}$ here should be a common estimate of the overdispersion parameter under the full model (the model including all covariates). Also, $\phi$ counts as one parameter. Using these criteria, decide which covariates you want to include in the model. You'll need to compute QAIC values manually by fitting non-quasi-likelihood models to get $l(\hat{\theta})$ as R doesn't include QAIC by default.

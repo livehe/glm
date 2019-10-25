@@ -4,8 +4,8 @@ subtitle: "Compulsory exercise 2: Logistic regression and Poisson regression"
 author: "Liv Elise Herstad and Julie Berg"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
-  # html_document
-  pdf_document
+   html_document
+  #pdf_document
 
 ---
 
@@ -161,6 +161,17 @@ plot(prominence,resid_model2) #residuals vs. covaiate prominence
 ## f)
 The height and (by definition) the prominence of Mount Everest are both 8848 meters. Compute a prediction for the probability that an attempt at this summit will be successful. First consider the predicted value and its variance on the scale of the linear predictor (vcov gives you the estimate variance matrix of $\hat\beta$ ). Also compute a 95% confidence interval for the predicted value on this scale based on asymptotic normality of $\hat\beta$ . Transform this confidence interval to the probability scale and explain the theory behind the transformation you're using.
 
+
+```{r}
+newdata = data.frame(8848, 8848)
+colnames(newdata) = (c("height", "prominence" ))
+
+
+pred <- predict(model1, newdata)
+
+exp(pred)/(1 + exp(pred))
+
+```
 
 
 \newpage

@@ -334,6 +334,56 @@ There could be some underdispersion since there is correlation between each pair
 ## d) 
 Lag masse ting
 
+```{r}
+tournamentPoints <- function(tournament) { #takes in a data frame
+  tournament <- na.omit(tournament)
+  teamnames <- c(levels(long$attack))
+  teams <- c(rep(0, 16))
+  names(teams) <-teamnames
+  difference <- c(rep(0, 16))
+  total <- c(rep(0, 16))
+  names(difference) <- teamnames
+  names(total) <- teamnames
+  for(i in 1:(nrow(tournament))) { 
+    difference[tournament$attack[i]] = difference[tournament$attack[i]] + tournament$goals[i]
+    difference[tournament$defence[i]] = difference[tournament$defence[i]] - tournament$goals[i]
+    
+    total[tournament$attack[i]] = total[tournament$attack[i]] + tournament$goals[i]
+  }
+  
+  for(i in 1:(nrow(tournament)/2)) { 
+    if(tournament$goals[2*i] > tournament$goals[2*i-1]) {
+      teams[tournament$attack[2*i]] = teams[tournament$attack[2*i]] + 3
+    } 
+    else if(tournament$goals[2*i] < tournament$goals[2*i-1]) {
+      teams[tournament$attack[2*i-1]] = teams[tournament$attack[2*i-1]] + 3
+    }
+    
+    else {
+      teams[tournament$attack[2*i-1]] = teams[tournament$attack[2*i-1]] + 1
+      teams[tournament$attack[2*i]] = teams[tournament$attack[2*i]] + 1
+    }
+  }
+  
+  #the thing to sort
+  test <- data.frame(teams, difference, total)
+  ranks <- data.table::frankv(test, ties.method=c("random"))
+  
+  ranking <- vector()
+  
+  for(i in 16:1) {
+    index <- match(i, ranks)
+    ranking[17-i] <- teamnames[index]
+  }
+
+  return(ranking)
+}
+
+
+
+
+```
+
 ##e)
 Expected number of goals
 ```{r}

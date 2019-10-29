@@ -4,8 +4,8 @@ subtitle: "Compulsory exercise 2: Logistic regression and Poisson regression"
 author: "Liv Elise Herstad and Julie Berg"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
-   html_document
-  #pdf_document
+  # html_document
+  pdf_document
 
 ---
 
@@ -48,15 +48,14 @@ $$
 We get the probability of $Y_i = 1$, i.e. the probability of succeeding in climbing mountain $i$ by 
 
 $$
-P(Y_i = 1) = \pi_i = \frac{\mathbf{x}_i^T\boldsymbol{\beta}}{1+\mathbf{x}_i^T\boldsymbol{\beta}}
+P(Y_i = 1) = \pi_i = \frac{\exp{(\mathbf{x}_i^T\boldsymbol{\beta})}}{1+\exp{(\mathbf{x}_i^T\boldsymbol{\beta})}}
 $$
 
 See code for the fitted glm model
 
 ```{r}
 filepath <- "https://www.math.ntnu.no/emner/TMA4315/2018h/mountains"
-mount <- read.table(file = filepath, header = TRUE, col.names = c("height", 
-                                            "prominence", "fail", "success"))
+mount <- read.table(file = filepath, header = TRUE, col.names = c("height", "prominence", "fail", "success"))
 attach(mount) 
 model1 <- glm(cbind(success, fail) ~ height + prominence, data = mount, family = "binomial")
 summary(model1) #AIC = 686.03
@@ -77,7 +76,7 @@ chisquared <- qchisq(1-0.05, df=113-3) # chi-squared = 135.4802
 chisquared
 ```
 
-As $D \gt \chi^2_{110}$ we see that there is overdispersion in the data. One can also divide the deviance, D, by the number of degrees of freedom, and if the number is close to 1 there is no or little to no sign of overdispersion. 
+As ... we see that there is overdispersion in the data. One can also divide the deviance, D, by the number of degrees of freedom, and if the number is close to 1 there is no or little to no sign of overdispersion. 
 
 ```{r}
 deviance/110
@@ -97,14 +96,28 @@ summary(model2) #no AIC
 As we can see from the summary of the model, there is no QAIC calculated for the Quasibinomial model. The QAIC for this model is calculated under task c). 
 
 ## c) 
-Using the ordinary AIC criteria, choose a best model for the data. Burnham and Anderson recommends that $\hat{\phi}$ here should be a common estimate of the overdispersion parameter under the full model (the model including all covariates). Also, $\phi$ counts as one parameter. Using these criteria, decide which covariates you want to include in the model. You'll need to compute QAIC values manually by fitting non-quasi-likelihood models to get $l(\hat{\theta})$ as R doesn't include QAIC by default.
+\textit{Using the ordinary AIC criteria, choose a best model for the data. Burnham and Anderson recommends that $\hat{\phi}$ here should be a common estimate of the overdispersion parameter under the full model (the model including all covariates). Also, $\phi$ counts as one parameter. Using these criteria, decide which covariates you want to include in the model. You'll need to compute QAIC values manually by fitting non-quasi-likelihood models to get $l(\hat{\theta})$ as R doesn't include QAIC by default.}
+
+The AIC is the Akaike Information Criterion, and we can use it to determine which model is the best by chosing the one with lowest AIC. Since we had to fit a Quasibinomial model, we get a QAIC instead of an AIC. However, the glm function in R does not compute it automatically, so the following code shows fitted glm models for each submodel including a manually computed QAIC value. Luckily, it is quite easy to compute the QAIC when one can just extract the log likelihood from each binomial model with the same predictors as the model we are investigating. We use the same dispersion parameter for all of the submodels, but the log likelihod for each model is computed every time a new model is fitted. The QAIC "punishes" larger models just as AIC does, seen from the following formula
+
+$$
+QAIC_i = \frac{-2 \cdot l_i(\hat{\beta})}{\hat{\phi}} + 2 \cdot p
+$$
+
+where $p$ is the number of parameters included in model $i$, $\beta_0$ and $\phi$ included as parameters. The 'intercept' is included in all of the models, so we will only point out which predictors that differ. 
+
+First we compute the QAIC from the model fitted in b). 
 
 ```{r}
 disp <- summary(model2)$dispersion
-loglik1 <- logLik(model1)
+loglik1 <- logLik(model1) #loglikelihood from binomial model
 QAIC_2 <- -2*loglik1/disp +2*4 #p = 4
 QAIC_2 #188.0638
 ```
+
+Here, the QAIC for the model with both 'height' and 'prominence' is `r QAIC_2`.
+
+Next, we fit the glm with just the predictor 'height', calling it model 3.
 
 ```{r}
 model3 <- glm(cbind(success, fail) ~ height, data = mount, family = "quasibinomial")
@@ -115,6 +128,10 @@ QAIC_3 <- -2*loglik3/disp +2*3 #p = 3
 QAIC_3 #189.9345
 ```
 
+The QAIC for model 3 is `r QAIC_3`. 
+
+Next up is the model with only 'prominence' as the predictor, calling it model 4. 
+
 ```{r}
 model4 <- glm(cbind(success, fail) ~ prominence, data = mount, family = "quasibinomial")
 summary(model4) #no AIC
@@ -123,6 +140,10 @@ loglik4 <- sum(dbinom(success, success+fail,fitted(model4), log=TRUE))
 QAIC_4 <- -2*loglik4/disp +2*3 #p = 3
 QAIC_4 #223.0717
 ```
+
+The QAIC for model 4 is `r QIAC_4`. 
+
+The last glm fitted is the model with only the intercept $\beta_0$, calling it model 5. 
 
 ```{r}
 model5 <- glm(cbind(success, fail) ~ 1, data = mount, family = "quasibinomial")
@@ -133,9 +154,14 @@ QAIC_5 <- -2*loglik5/disp +2*2 #p = 2
 QAIC_5 #263.66
 ```
 
+The QAIC is `r QIAC_5`. 
+
+The model with lowest QAIC value is model 2, the model with 'intercept', 'height' and 'prominence' as parameters. \textcolor{red}{is phi also included here or just in the calc of QAIC?}
+
+The QAIC of model 2 is not far from the QAIC of model 3, the model with only 'height' as predictor, suggesting that 'prominence' isn't adding much information. However, it is model 2 that has the lowest QAIC, and we choose this as the best model. 
 
 ## d) 
-Also test the significance of each term in the model using both Wald tests and likelihood ratio/F-tests and comment on any differences you see (summary and drop1). Given your choice of link function, give interpretations of the estimated regression slope parameters, in language that you would use to communicate to non-statisticians.
+\textit{Also test the significance of each term in the model using both Wald tests and likelihood ratio/F-tests and comment on any differences you see (summary and drop1). Given your choice of link function, give interpretations of the estimated regression slope parameters, in language that you would use to communicate to non-statisticians.}
 
 ```{r, eval=TRUE, echo=FALSE}
 droppit_F <- drop1(model2, test="F") #quasibinomial F-test
@@ -144,10 +170,34 @@ waldqb <- summary(model2) #Wald: p-value from summary
 waldqb
 ```
 
-The significance tests for each term is presented in the R-code above. We see from both the F-test and the Wald test that the covariate 'prominence' is less significant than covariate 'height'. The p-value from the F-test is 0.05145 and the p-value from the Wald test is 0.0518, which means it is right above the standard threshold $\alpha = 0.05$ of rejection. 
+The significance tests for each term is presented in the R-code above. What we see from the F-test and the Wald test, is that they both agree on 'height' being significant. They also show that the predictor 'prominence' is less significant than predictor 'height'. The p-value for 'prominence' from the F-test is 0.05145 and the p-value from the Wald test is 0.0518, which means it is right above the standard threshold $\alpha = 0.05$ of rejection. 
+
+\textcolor{red}{hvorfor er å forklare coeffisientene under dette punktet lmao}
+```{r}
+coeffs <- coef(model2) 
+coeffs
+```
+
+The estimated regression slope parameters is given in the summmary of model 2 under b) as well as being printed in the R-code above.
+
+Since we are working with a glm that's a Quasibinomial model, the coefficients (regression slope parameters) can't be interpreted as we would given a linear model. In the linear model, $y_i = \beta_0 + \beta_1x_{1i} + \beta_2x_{2i}$ the coefficients are easily interpreted as the number one would expect the y-value (response value) to increase by when the respective x-value (predictor) changes by one unit, given that all other x-values (predictors) remain constant. For example if the response value is 'weight of infant' and the predictors are 'age' and 'eye colour', when the infant ages one year and remains its eye color, the expected increase in 'weight' would be the value of the coefficient of predictor 'age'. However, the interpretation isn't as straight forward for our model.
+
+Since the link function chosen was the logit link, the regression model looks like this
+
+$$
+\ln \left(\frac{\pi_i}{1-\pi_i} \right) = \eta = \beta_0 + \beta_1x_1 + \beta_2x_2
+$$
+
+where the response value is the natural logarithm of the odds, i.e. the natural log of the probability of climbing the mountain divided by the probability of failing. An increase of one unit in one of the predictors would result in the log odds increasing by the coefficient belonging to that predictor. An increase of 'height' by 1 meter would increase the log odds by $\beta_1$ = `r coeffs["height"]`. That increase (or decrease in this case) is very difficult to interpret, so we might rewrite the model so the response variable makes more sense:
+
+$$
+\pi_i = \frac{\exp{(\mathbf{x}_i^T\boldsymbol{\beta})}}{1+\exp{(\mathbf{x}_i^T\boldsymbol{\beta})}}
+$$
+
+This response is much easier to interpret, as it is the probability of succeeding in climbing mountain $i$. It makes the regression slope parameters less intuitive, but that's the price one has to pay when the data can't be modelled as a linear model.
 
 ## e)
-Examine the model fit by plotting the deviance residuals against fitted values and against each covariate (residuals( , type="deviance") and fitted( )).
+\textit{Examine the model fit by plotting the deviance residuals against fitted values and against each covariate (residuals( , type="deviance") and fitted( )).}
 
 ```{r}
 resid_model2 <- residuals(model2, type="deviance")
@@ -158,20 +208,47 @@ plot(height,resid_model2) #residuals vs. covariance height
 plot(prominence,resid_model2) #residuals vs. covaiate prominence
 ```
 
-## f)
-The height and (by definition) the prominence of Mount Everest are both 8848 meters. Compute a prediction for the probability that an attempt at this summit will be successful. First consider the predicted value and its variance on the scale of the linear predictor (vcov gives you the estimate variance matrix of $\hat\beta$ ). Also compute a 95% confidence interval for the predicted value on this scale based on asymptotic normality of $\hat\beta$ . Transform this confidence interval to the probability scale and explain the theory behind the transformation you're using.
+As the residuals don't show any pattern, we conclude that the Quasibinomial is a suitable fit for the data. 
 
+## f)
+\textit{The height and (by definition) the prominence of Mount Everest are both 8848 meters. Compute a prediction for the probability that an attempt at this summit will be successful. First consider the predicted value and its variance on the scale of the linear predictor (vcov gives you the estimate variance matrix of $\hat\beta$ ). Also compute a 95% confidence interval for the predicted value on this scale based on asymptotic normality of $\hat\beta$ . Transform this confidence interval to the probability scale and explain the theory behind the transformation you're using.}
 
 ```{r}
-newdata = data.frame(8848, 8848)
+m_height = 8848
+m_prom = 8848
+newdata = data.frame(m_height, m_prom)
 colnames(newdata) = (c("height", "prominence" ))
-
-
 pred <- predict(model1, newdata)
-
-exp(pred)/(1 + exp(pred))
-
+prob1 <- exp(pred)/(1 + exp(pred))
+prob2 <- prob*100
+prob2
 ```
+
+The predicted probability of success at climbing Mount Everest is `r prob2 `. 
+
+beta følger normalfordeling N(beta, invers av Fisher)
+y=x0beta følger også normalfordeling x0beta, inv fisher * x0
+lag konf int med dette
+
+A 95% confidence interval for the predicted value
+
+```{r}
+vcov(model2)
+#confint?
+```
+
+
+Transforming the confidence interval to the probability scale
+
+
+
+
+
+
+
+
+
+
 
 
 \newpage
@@ -192,11 +269,11 @@ long <- read.csv("https://www.math.ntnu.no/emner/TMA4315/2019h/eliteserie.csv")
 mod <- glm(goals ~ attack + defence + home, poisson, data=long)
 ```
 
-The assumption of Poisson regression fits well, as the observations $y_i \in \{1, 2, \dots,32 \}$ are count data, indicating how often some event of interest has been observed in a certain period of time. The event is scoring a goal in a 90 minute football game. In a Poisson model it is assumed that the $y_i$ are independently $\text{Po}(\lambda_i)$ distributed, which is reasonable to assume. 
+The assumption of Poisson regression fits well, as the observations $y_i \in \{1, 2, \dots,32 \}$ are count data, indicating how often some event of interest has been observed in a certain period of time. The event of interest is scoring a goal, and the period of time is the 90 minute football game. In a Poisson model it is assumed that the $y_i$ are independently $\text{Po}(\lambda_i)$ distributed, which is reasonable to assume. 
 
 For this model, the response variable is number of goals per game for each team. Reading from the data, there are 16 football teams. The covariates in this model are 'attack', 'defence' and 'home', where 'attack' and 'defence' has the 16 football teams as levels, and 'home' has two levels (yes or no). 
 
-The level 'BodoeGlimt' is chosen as the reference category, meaning that it is included in the intercept. Making 15 levels? 
+The level 'BodoeGlimt' is chosen as the reference category, meaning that it is included in the intercept. \textcolor{red}{Making 15 levels?} 
 
 Given the chosen Poisson regression, the linear predictor $\eta_i =\textbf{x}_i^T\boldsymbol{\beta}$ is connected with the rate $\lambda_i$ via 
 $$\lambda_i = \text{exp}(\eta_i) = \text{exp}(\beta_0 + \beta_1x_{i1} + \dots + \beta_{32}x_{i32})$$ 
@@ -209,14 +286,14 @@ and more neatly written as
 $$
 \ln\lambda_i = \mu + \alpha_{j(i)} + \beta_{k(i)} + \gamma_{h(i)}
 $$
-where $\mu$ is the intercept, $\alpha_{j(i)}$ is the attack coefficient for team j in observation i, $\beta_{k(i)}$ is the defence coefficient for team k $\neq$ j in observation i, and $\gamma_{h(i)}$ is the home coefficient dependent on which team is playing their home field (i.e. h $\eq$ j or h $\eq$ k). 
+where $\mu$ is the intercept, $\alpha_{j(i)}$ is the attack coefficient for team j in observation i, $\beta_{k(i)}$ is the defence coefficient for team k $\neq$ j in observation i, and $\gamma_{h(i)}$ is the home coefficient dependent on which team is playing their home field (i.e. h = j or h = k). 
 
 The parameters associated with each level of 'attack', 'defence' and 'home' say something about the increase or decrease of the log-response. 'attack' has 16 levels, where each parameter indicates if that team's attack parameter will increase or decrease the log-response if included. Same goes for 'defence', but it is a bit trickier to think about. The lower defence parameter, the better the team. That's because the Poisson model calculates the expected number of goals for one team. That means the attack parameter for that team is included, home parameter is included and the defence parameter of the opposing team is inlcuded as well. If the opposing team's defence parameter is small (or negative) it will not add much to the expected number of goals in the end (it might even subtract). That's why a higher value of attack parameter indicates more goals for the team, and a smaller value of defence parameter indicates a tougher opponent team. 
 
 ## b) 
 \textit{If good teams tend to have both strong defence and strong attack capabilities, what kind of association would you expect between the above parameters? Is there any evidence of such a relationship between the parameters? You may want to use cor.test to test for this.}
 
-If a team has strong attack capabilities, the parameter for attack of the team will be large, and if they have strong defence capabilities the defence parameter will be small (or negative). 
+If a team has strong attack capabilities, the parameter for 'attack' of the team will be large, and if they have strong defence capabilities the 'defence' parameter will be small (or negative). 
 
 Correlation measures the tendency for the variables to fluctuate. The value of the correlation coefficient is between $-1$ and $+1$. In general, a positive correlation will indicate that an increase (decrease) in one variable leads to an increase in the second variable, whereas a negative correlation indicates that an increase in one variable leads to a decrease in the other. 
 
@@ -227,7 +304,7 @@ correlation <- cor.test(mod$coefficients[2:16] , mod$coefficients[17:31] , data=
 correlation
 ```
 
-As you can see, the correlation is $-0.055$, which is a medium negative correlation value on the scale from [-1,0]. 
+As you can see, the correlation is $-0.055$, which is a medium negative correlation value on the scale from [-1,0]. This suggests that there is evidence of 
 
 LIV FORKLAR PLS halp
 
@@ -251,9 +328,8 @@ d_mod2 / 352 #divide deviance by df, if close to 1 --> not overdispersion
 
 Since $\text{D} \ngtr \chi^2_{0.05,352}$, we conclude that there is no overdispersion in the data, and we do not need to introduce a quasipoisson model. The alternative method of dividing the deviance by the degrees of freedom is close to one, indicating that there indeed is no sign of overdispersion. 
 
-Possible sources of over- and underdispersion in this example could be
+There could be some underdispersion since there is correlation between each pair of rows in the data frame. 
 
-idk
 
 ## d) 
 Lag masse ting

@@ -379,9 +379,8 @@ tournamentPoints <- function(tournament) { #takes in a data frame
   return(ranking)
 }
 
-
-
-
+teams <- tournamentPoints(long)
+print(teams)
 ```
 
 ##e)

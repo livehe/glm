@@ -31,7 +31,7 @@ $y_i$: number of successful ascents for $i$th mountain
 $n_i$: total number of trials (successful ascend + failure) for $i$th mountain
 
 We choose binary regression because the response variable $Y_i$ is binomially distributed and categorical. 
-The choice of an appropriate link function is dependent on the type of response variable. Since we are dealing with a binary response model, we use the logit link function, obtaining the Logit model. 
+The choice of an appropriate link function is dependent on the type of response variable. Since we are dealing with a binary response model, we use the logit link function, obtaining the Logit model.
 The logit link is the natural log of the odds that $Y_i$ take on one of the categories, and forms a somewhat linear relationship with the predictors. 
 
 Our model choice for the probability of success is $Y_i \sim \text{Bin}(n_i, \pi_i) \quad \text{for} \  i = 1,\ldots,113$ with linear predictor $\eta_i = \mathbf{x}_i^T\boldsymbol{\beta}$ and link function $\ln \left(\frac{\pi_i}{1-\pi_i} \right)$, where $\mathbf{x}_i$ is the vector consisting of the covariates 'height' and 'prominence' for the $i$th observation, and $\boldsymbol{\beta}$ is the vector of regression parameters. 
@@ -53,7 +53,7 @@ $$
 
 See code for the fitted glm model
 
-```{r}
+```{r, eval=TRUE, echo=TRUE}
 filepath <- "https://www.math.ntnu.no/emner/TMA4315/2018h/mountains"
 mount <- read.table(file = filepath, header = TRUE, col.names = c("height", "prominence", "fail", "success"))
 attach(mount) 
@@ -67,8 +67,8 @@ summary(model1) #AIC = 686.03
 
 Overdispersion is the presence of greater variability in a data sat than would be expected based on a statistical model. 
 
-Checking for overdispersion by doing a Chi-squared test. \textcolor{red}{why can we use chi-sq}. There are signs of overdispersion if the deviance, D, of a model is greater than the $\chi^2$ with $110$ degrees of freedom. 
-```{r}
+Checking for overdispersion by doing a Chi-squared test, since $D \sim \chi^2_{110}$. There are signs of overdispersion if the deviance, D, of a model is greater than the $\chi^2$ with $110$ degrees of freedom. 
+```{r, eval=TRUE, echo=TRUE}
 deviance <- summary(model1)$deviance
 deviance
 degfree1 <- summary(model1)$df.residual
@@ -78,17 +78,17 @@ chisquared
 
 As ... we see that there is overdispersion in the data. One can also divide the deviance, D, by the number of degrees of freedom, and if the number is close to 1 there is no or little to no sign of overdispersion. 
 
-```{r}
+```{r, eval=TRUE, echo=TRUE}
 deviance/110
 ```
 
 Since $\frac{D}{110} \not\approx 1$ our second test also suggest that there is overdispersion in the data. 
 
-Potential sources for overdispersion can, in general, be unobserved heterogeneity and possitive correlation between individual binary observations of $Y$. For our data, there is quite possible a lot of heterogeneity, meaning there are many differences in our sample. When people are climbing mountains with different heights and different prominences, there is bound to be some differences in what different people are able to do. There could also be some correlation between the individual binary observations, as people tend to climb mountains in groups. If one person has to stop because of different reasons (maybe lack of fitness or simply an injury), there is a big chance the entire group quits or atleast some quit. 
+Potential sources for overdispersion can, in general, be unobserved heterogeneity and positive correlation between individual binary observations of $Y$. For our data, there is quite possibly a lot of heterogeneity, meaning there are many differences in our sample. When people are climbing mountains with different heights and different prominences, there is bound to be some differences in what different people are able to do. There could also be some correlation between the individual binary observations, as people tend to climb mountains in groups. If one person has to stop because of different reasons (maybe lack of fitness or simply an injury), there is a big chance the entire group quits or atleast some quit. 
 
 Whatever the reasons, we do have overdispersion in our data and we therefore fit a Quasibinomial model instead of a Binomial model to the data, and make a new glm modelling the probability of reaching a mountain's summit. 
 
-```{r}
+```{r, eval=TRUE, echo=TRUE}
 model2 <- glm(cbind(success, fail) ~ height + prominence, data = mount, family = "quasibinomial")
 summary(model2) #no AIC
 ```
@@ -108,7 +108,7 @@ where $p$ is the number of parameters included in model $i$, $\beta_0$ and $\phi
 
 First we compute the QAIC from the model fitted in b). 
 
-```{r}
+```{r, eval=TRUE, echo=TRUE}
 disp <- summary(model2)$dispersion
 loglik1 <- logLik(model1) #loglikelihood from binomial model
 QAIC_2 <- -2*loglik1/disp +2*4 #p = 4
@@ -119,7 +119,7 @@ Here, the QAIC for the model with both 'height' and 'prominence' is `r QAIC_2`.
 
 Next, we fit the glm with just the predictor 'height', calling it model 3.
 
-```{r}
+```{r, eval=TRUE, echo=TRUE}
 model3 <- glm(cbind(success, fail) ~ height, data = mount, family = "quasibinomial")
 summary(model3) #no AIC
 
@@ -132,7 +132,7 @@ The QAIC for model 3 is `r QAIC_3`.
 
 Next up is the model with only 'prominence' as the predictor, calling it model 4. 
 
-```{r}
+```{r, eval=TRUE, echo=TRUE}
 model4 <- glm(cbind(success, fail) ~ prominence, data = mount, family = "quasibinomial")
 summary(model4) #no AIC
 
@@ -141,11 +141,11 @@ QAIC_4 <- -2*loglik4/disp +2*3 #p = 3
 QAIC_4 #223.0717
 ```
 
-The QAIC for model 4 is `r QIAC_4`. 
+The QAIC for model 4 is `r QAIC_4`. 
 
 The last glm fitted is the model with only the intercept $\beta_0$, calling it model 5. 
 
-```{r}
+```{r, eval=TRUE, echo=TRUE}
 model5 <- glm(cbind(success, fail) ~ 1, data = mount, family = "quasibinomial")
 summary(model5) #no AIC
 
@@ -154,16 +154,16 @@ QAIC_5 <- -2*loglik5/disp +2*2 #p = 2
 QAIC_5 #263.66
 ```
 
-The QAIC is `r QIAC_5`. 
+The QAIC is `r QAIC_5`. 
 
-The model with lowest QAIC value is model 2, the model with 'intercept', 'height' and 'prominence' as parameters. \textcolor{red}{is phi also included here or just in the calc of QAIC?}
+The model with lowest QAIC value is model 2, the model with 'intercept', 'height' and 'prominence' as parameters. 
 
 The QAIC of model 2 is not far from the QAIC of model 3, the model with only 'height' as predictor, suggesting that 'prominence' isn't adding much information. However, it is model 2 that has the lowest QAIC, and we choose this as the best model. 
 
 ## d) 
 \textit{Also test the significance of each term in the model using both Wald tests and likelihood ratio/F-tests and comment on any differences you see (summary and drop1). Given your choice of link function, give interpretations of the estimated regression slope parameters, in language that you would use to communicate to non-statisticians.}
 
-```{r, eval=TRUE, echo=FALSE}
+```{r, eval=TRUE, echo=TRUE}
 droppit_F <- drop1(model2, test="F") #quasibinomial F-test
 droppit_F
 waldqb <- summary(model2) #Wald: p-value from summary
@@ -172,7 +172,6 @@ waldqb
 
 The significance tests for each term is presented in the R-code above. What we see from the F-test and the Wald test, is that they both agree on 'height' being significant. They also show that the predictor 'prominence' is less significant than predictor 'height'. The p-value for 'prominence' from the F-test is 0.05145 and the p-value from the Wald test is 0.0518, which means it is right above the standard threshold $\alpha = 0.05$ of rejection. 
 
-\textcolor{red}{hvorfor er å forklare coeffisientene under dette punktet lmao}
 ```{r}
 coeffs <- coef(model2) 
 coeffs
@@ -211,7 +210,7 @@ plot(prominence,resid_model2) #residuals vs. covaiate prominence
 As the residuals don't show any pattern, we conclude that the Quasibinomial is a suitable fit for the data. 
 
 ## f)
-\textit{The height and (by definition) the prominence of Mount Everest are both 8848 meters. Compute a prediction for the probability that an attempt at this summit will be successful. First consider the predicted value and its variance on the scale of the linear predictor (vcov gives you the estimate variance matrix of $\hat\beta$ ). Also compute a 95% confidence interval for the predicted value on this scale based on asymptotic normality of $\hat\beta$ . Transform this confidence interval to the probability scale and explain the theory behind the transformation you're using.}
+The height and (by definition) the prominence of Mount Everest are both 8848 meters. Compute a prediction for the probability that an attempt at this summit will be successful. First consider the predicted value and its variance on the scale of the linear predictor (vcov gives you the estimate variance matrix of $\hat\beta$ ). Also compute a 95% confidence interval for the predicted value on this scale based on asymptotic normality of $\hat\beta$ . Transform this confidence interval to the probability scale and explain the theory behind the transformation you're using.
 
 ```{r}
 m_height = 8848
@@ -220,26 +219,56 @@ newdata = data.frame(m_height, m_prom)
 colnames(newdata) = (c("height", "prominence" ))
 pred <- predict(model1, newdata)
 prob1 <- exp(pred)/(1 + exp(pred))
-prob2 <- prob*100
+prob2 <- prob1*100
 prob2
 ```
 
 The predicted probability of success at climbing Mount Everest is `r prob2 `. 
 
-beta følger normalfordeling N(beta, invers av Fisher)
-y=x0beta følger også normalfordeling x0beta, inv fisher * x0
-lag konf int med dette
+To make a confidence interval for the predicted value, we first concider the distribution of the parameters. We know that
+$$
+\hat{\beta} \sim N(x^T\beta, F^{-1}(\hat\beta))
+$$
 
-A 95% confidence interval for the predicted value
+However, when the interest is on the predicted value $\eta = x_0^T\hat\beta$, since the parameter is normal, the predicted value is actually normal as well
+
+$$
+x_0^T\hat\beta \sim N(x_0^T\beta, x_0^T\beta x_0)
+$$
+
+We can then create a confidence interval for the predicted value by making it standard normal by subtracting the mean and dividing by the standard error, with the critical values being standard normal with quantiles $\alpha/2$. 
+
+$$
+P(-z_{\alpha/2} \leq \frac{x_0^T\hat\beta-x\beta}{SE(x_0^T\hat\beta)} \leq x_{\alpha/2}) = 1-\alpha
+P(x_0^T\hat\beta - SE(x_0^T\hat\beta) \leq x^T\beta \leq x_0^T\hat\beta - SE(x_0^T\hat\beta)) = 1-\alpha
+$$
+
+For a 95% confidence interval, $\alpha = 0.05$, making $z_{0.05/2} = 1.96$. Computing this in R results in
 
 ```{r}
-vcov(model2)
-#confint?
+x0 <- c(1,m_height,m_prom)
+variance <- t(x0)%*%vcov(model2)%*%x0
+se <- sqrt(variance)
+x0beta <- t(x0)%*%coef(model2)
+critval = 1.96
+zse <- critval*se
+A <- x0beta - zse
+B <- x0beta + zse
+c(A,B)
 ```
 
+$$
+P(`r A` \leq x^T\beta \leq `r B`) = 0.95
+$$
 
-Transforming the confidence interval to the probability scale
+The probability of $x_0^T\beta$ being between `r A` and `r B` is 95%. To get the interval on the probability scale, we use the inverse logit function, to get the probabilities back
 
+
+```{r, eval=TRUE, echo=TRUE}
+plogis(A) #inverse logit
+plogis(B)
+```
+As the logit link is monotone, we will get the lower probability by inserting the lowest value and get the highest probability for the highest value. 
 
 
 
@@ -273,7 +302,7 @@ The assumption of Poisson regression fits well, as the observations $y_i \in \{1
 
 For this model, the response variable is number of goals per game for each team. Reading from the data, there are 16 football teams. The covariates in this model are 'attack', 'defence' and 'home', where 'attack' and 'defence' has the 16 football teams as levels, and 'home' has two levels (yes or no). 
 
-The level 'BodoeGlimt' is chosen as the reference category, meaning that it is included in the intercept. \textcolor{red}{Making 15 levels?} 
+The level 'BodoeGlimt' is chosen as the reference category, meaning that it is included in the intercept.
 
 Given the chosen Poisson regression, the linear predictor $\eta_i =\textbf{x}_i^T\boldsymbol{\beta}$ is connected with the rate $\lambda_i$ via 
 $$\lambda_i = \text{exp}(\eta_i) = \text{exp}(\beta_0 + \beta_1x_{i1} + \dots + \beta_{32}x_{i32})$$ 
@@ -293,21 +322,18 @@ The parameters associated with each level of 'attack', 'defence' and 'home' say 
 ## b) 
 \textit{If good teams tend to have both strong defence and strong attack capabilities, what kind of association would you expect between the above parameters? Is there any evidence of such a relationship between the parameters? You may want to use cor.test to test for this.}
 
-If a team has strong attack capabilities, the parameter for 'attack' of the team will be large, and if they have strong defence capabilities the 'defence' parameter will be small (or negative). 
+If a team has strong attack capabilities, the coefficient for 'attack' of the team will be large, and if they have strong defence capabilities the 'defence' parameter will be small (or negative). 
 
-Correlation measures the tendency for the variables to fluctuate. The value of the correlation coefficient is between $-1$ and $+1$. In general, a positive correlation will indicate that an increase (decrease) in one variable leads to an increase in the second variable, whereas a negative correlation indicates that an increase in one variable leads to a decrease in the other. 
+Correlation measures the tendency for the variables to fluctuate. The value of the correlation coefficient is between $-1$ and $+1$. In general, a positive correlation will indicate that an increase (decrease) in one variable leads to an increase in the second variable, whereas a negative correlation indicates that an increase in one variable leads to a decrease in the other. From the explanation in a), we would expect a negative correlation if a team has good attack capabilities (large attack coefficient) and good defence capabilites (small or negative defence coefficient).
 
 We calculate the correlation between the parameters attack and defence, and show the result below.
 
 ```{r}
 correlation <- cor.test(mod$coefficients[2:16] , mod$coefficients[17:31] , data=long)
-correlation
+corr <- correlation$estimate
 ```
 
-As you can see, the correlation is $-0.055$, which is a medium negative correlation value on the scale from [-1,0]. This suggests that there is evidence of 
-
-LIV FORKLAR PLS halp
-
+As you can see, the correlation is `r corr`, which is a medium negative correlation value on the scale from [-1,0]. This supports what we expected. 
 
 ## c) 
 \textit{Based on the observed deviance, is there evidence of overdispersion in the data? What would be possible sources of over- and underdispersion in this example?}
@@ -328,12 +354,10 @@ d_mod2 / 352 #divide deviance by df, if close to 1 --> not overdispersion
 
 Since $\text{D} \ngtr \chi^2_{0.05,352}$, we conclude that there is no overdispersion in the data, and we do not need to introduce a quasipoisson model. The alternative method of dividing the deviance by the degrees of freedom is close to one, indicating that there indeed is no sign of overdispersion. 
 
-There could be some underdispersion since there is correlation between each pair of rows in the data frame. 
+Reasons for over- or underdispersion are once again, unobserved heterogeneity and positive correlation between the responses. When team A and team B play on team A's home field, we could expect some correlation when the same teams play on team B's home field. That way we would get correlation between goals scored based on whose home field they're playing. There could also be some unobserved heterogeneity because there are some unmeasured differences between the teams, that aren't represented by the included variables. 
 
 
 ## d) 
-Lag masse ting
-
 ```{r}
 tournamentPoints <- function(tournament) { #takes in a data frame
   tournament <- na.omit(tournament)
@@ -375,7 +399,6 @@ tournamentPoints <- function(tournament) { #takes in a data frame
     index <- match(i, ranks)
     ranking[17-i] <- teamnames[index]
   }
-
   return(ranking)
 }
 
@@ -390,3 +413,63 @@ Expected number of goals
 ```
 
 ##f)
+\textit{A possible simplification of the model would be to assume the attack and defence strengths of each team are equal in absolute value but of opposite sign. Explain how this is a linear hypothesis on the form $C\beta = d$. Perform a Wald test of this hypothesis. The estimate of the variance matrix of $\hat\beta$ is available via the 'vcov()' function.}
+
+A way to write that attack and defence strengths are equal in absolute value but of opposite sign is
+$$
+\beta_i = -\beta_{i+15}
+$$
+
+To check every coefficient for $i=1,\dots, 15$ we can write $C\beta = d$, where
+
+\[
+C = 
+\begin{bmatrix}
+    0 & 1 & 0 & \dots & 0 & 1 & 0 & \dots & 0 & 0\\
+    0 & 0 & 1 & \dots & 0 & 0 & 1 & \dots & 0 & 0  \\
+    \vdots & \vdots & \vdots & \ddots & \vdots & \vdots & \ddots  & \vdots  & \vdots\\
+    0 & 0 & 0 & \dots & 1 & 0 & 0 & \dots & 1 & 0
+\end{bmatrix}
+, 
+\beta =
+\begin{bmatrix}
+    \beta_0 \\
+    \beta_1 \\
+    \vdots \\
+    \beta_{30} \\
+    \beta_{31}
+\end{bmatrix}
+, 
+d =
+\begin{bmatrix}
+    0 \\
+    0 \\
+    \vdots \\
+    0 \\
+    0 
+\end{bmatrix}
+\]
+
+
+where C is the matrix of dimension 15 $\times$ 32, $\beta$ has dimension 32 $\times$ 1 and d has dimension 15 $\times$ 1. 
+
+```{r, eval=TRUE, echo=TRUE}
+b <- mod$coefficients #the betas
+C <- matrix(0, nrow = 15, ncol = 32)
+for (i in 1:15){
+  #beta1 has index 2 as so on
+  C[i,i+1] <- 1
+  C[i,i+1+15] <- 1 
+}
+library(Matrix)
+r <- rankMatrix(C)[1] #rank of matrix C
+d <- rep(0,17) #d vector (we dont rly use this because why subtract 0)
+V <- vcov(mod) #covariance matrix for coefficients
+library(MASS) #needed for solve function (inverse)
+W <- t(C%*%b)%*%solve(C%*%(V)%*%t(C))%*%(C%*%b) #Wald test for linear hypotheses
+W #Wald test value
+chisq <- qchisq(1-0.05, df=r) #chi squared quantile for r = 15
+chisq #Chi squared value
+```
+
+The Wald test value is `r W`, and since the Wald test is calculated using squared Normal distributed variables, $W \sim \chi^2_{r}$ where $r$ is the rank of the matrix C. We can therefore check the Wald test value against a chi squared quantile, and reject the null hypothesis if $W > \chi^2_{r}$. The $\chi^2_r$ value is `r chisq`, and therefore we do not reject the null hypothesis, and we can simplify the model by the assumptions described earlier. 

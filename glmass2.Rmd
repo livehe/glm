@@ -324,11 +324,11 @@ The parameters associated with each level of 'attack', 'defence' and 'home' say 
 
 If a team has strong attack capabilities, the coefficient for 'attack' of the team will be large, and if they have strong defence capabilities the 'defence' parameter will be small (or negative). 
 
-Correlation measures the tendency for the variables to fluctuate. The value of the correlation coefficient is between $-1$ and $+1$. In general, a positive correlation will indicate that an increase (decrease) in one variable leads to an increase in the second variable, whereas a negative correlation indicates that an increase in one variable leads to a decrease in the other. From the explanation in a), we would expect a negative correlation if a team has good attack capabilities (large attack coefficient) and good defence capabilites (small or negative defence coefficient).
+Correlation measures the tendency for the variables to fluctuate. The value of the correlation coefficient is between $-1$ and $+1$. In general, a positive correlation will indicate that an increase (decrease) in one variable leads to an increase (decrease) in the second variable, whereas a negative correlation indicates that an increase in one variable leads to a decrease in the other. From the explanation in a), we would expect a negative correlation if a team has good attack capabilities (large attack coefficient) and good defence capabilites (small or negative defence coefficient).
 
 We calculate the correlation between the parameters attack and defence, and show the result below.
 
-```{r}
+```{r, eval=TRUE, echo=TRUE}
 correlation <- cor.test(mod$coefficients[2:16] , mod$coefficients[17:31] , data=long)
 corr <- correlation$estimate
 ```
@@ -358,6 +358,8 @@ Reasons for over- or underdispersion are once again, unobserved heterogeneity an
 
 
 ## d) 
+Below you can see the code for the function as well as the printout when used on ´long´.
+
 ```{r}
 tournamentPoints <- function(tournament) { #takes in a data frame
   tournament <- na.omit(tournament)

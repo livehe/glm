@@ -4,8 +4,8 @@ subtitle: "Compulsory exercise 2: Logistic regression and Poisson regression"
 author: "Liv Elise Herstad and Julie Berg"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
-  # html_document
-  pdf_document
+   html_document
+  #pdf_document
 
 ---
 
@@ -431,16 +431,18 @@ tournamentRealizations <- function(data) {
     a <-order(names(rankings))
     m[b,] = a
   }
+  return(m)
 }
 
 m <- tournamentRealizations(long)
+
+
 
 ```
 
 We simulate the remaing matches to look at how the rest of the season is going to be. We want to find out where each team is expected to rank overall in this season. To summarize the results from our simulation, we want to look at both the expected rank for rach of the teams and also the probabilites for each of the teams to rank as each of the ranks. Both of these you can see in the printouts below.
 
 ```{r}
-
 #get expected rankings
 colMeans(m, na.rm = TRUE)
 

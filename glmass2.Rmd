@@ -368,10 +368,13 @@ tournamentPoints <- function(tournament) { #takes in a data frame
   total <- c(rep(0, 16))
   names(difference) <- teamnames
   names(total) <- teamnames
-  for(i in 1:(nrow(tournament))) { 
+  
+  for(i in 1:(nrow(tournament))) {
+    #get goal differences for each time
     difference[tournament$attack[i]] = difference[tournament$attack[i]] + tournament$goals[i]
     difference[tournament$defence[i]] = difference[tournament$defence[i]] - tournament$goals[i]
     
+    #get total amount of goals for each time
     total[tournament$attack[i]] = total[tournament$attack[i]] + tournament$goals[i]
   }
   
@@ -399,7 +402,12 @@ tournamentPoints <- function(tournament) { #takes in a data frame
     index <- match(i, ranks)
     ranking[17-i] <- teamnames[index]
   }
-  return(ranking)
+  
+  #want to print out the rank of the teams so does this
+  rank <- c(seq(1,16))
+  names(rank) <- ranking
+
+  return(rank)
 }
 
 teams <- tournamentPoints(long)
@@ -407,10 +415,51 @@ print(teams)
 ```
 
 ##e)
-Expected number of goals
 ```{r}
-#predict(mod, newdata, type="response")
+tournamentRealizations <- function(data) {
+  teamnames <- c(levels(long$attack))
+  m <- matrix(0, 1000, 16)
+  colnames(m) <- teamnames
+  
+  lambda_0 <- predict(mod, long[c(seq(385,480)),], type="response")
+  n_0 <- 480-384
+  
+  for(b in 1:1000) {
+    remaining <- rpois(n_0, lambda_0)
+    data$goals[385:480] <- remaining
+    rankings <- tournamentPoints(data)
+    a <-order(names(rankings))
+    m[b,] = a
+  }
+}
+
+m <- tournamentRealizations(long)
+
 ```
+
+We simulate the remaing matches to look at how the rest of the season is going to be. We want to find out where each team is expected to rank overall in this season. To summarize the results from our simulation, we want to look at both the expected rank for rach of the teams and also the probabilites for each of the teams to rank as each of the ranks. Both of these you can see in the printouts below.
+
+```{r}
+
+#get expected rankings
+colMeans(m, na.rm = TRUE)
+
+#get probabilities
+teamnames <- c(levels(long$attack))
+
+probs <- matrix(0, 16, 16)
+colnames(probs) <- teamnames
+
+for(team in teamnames) {
+  for(i in 1:16) {
+    probs[,team][i] <-length(which(m[,team]==i))/1000
+  }
+}
+
+probs #probability for each team placing getting each rank
+```
+
+
 
 ##f)
 \textit{A possible simplification of the model would be to assume the attack and defence strengths of each team are equal in absolute value but of opposite sign. Explain how this is a linear hypothesis on the form $C\beta = d$. Perform a Wald test of this hypothesis. The estimate of the variance matrix of $\hat\beta$ is available via the 'vcov()' function.}

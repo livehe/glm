@@ -1,0 +1,95 @@
+--- 
+title: "TMA4315 Generalized Linear Models" 
+subtitle: "Compulsory exercise 3: Linear Mixed Models and Generalized Linear Mixed Models" 
+author: "Liv Elise Herstad, Clara Panchaud and Julie Berg"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  # html_document
+  pdf_document
+
+---
+
+
+```{r setup, include=FALSE}
+library(formatR)
+showsol <- FALSE
+library(knitr)
+opts_chunk$set(tidy.opts = list(width.cutoff = 68), tidy = TRUE, warning = FALSE, error = FALSE, message = FALSE, echo = TRUE)
+```
+
+# Problem 1
+
+In this problem you will implement a function mylmm that computes the maximum likelihood and restricted maximum likelihood estimates of the parameters ($\beta_0$, $\tau^2$, $\sigma^2$) of the mixed model
+
+$$
+y_{ij}=\beta_0+\gamma_i+\epsilon_{ij}
+$$
+
+where $\gamma_i$ are iid $N(0,\tau^2)$ and $\epsilon_{ij}$ are iid $N(0,\sigma^2)$ for $i=1,\dots,m$, $j=1,\dots,n$ (same number of samples from each cluster).
+
+Since we only have an intercept $\beta_0$ and no slope parameters, the usual design matrix actually becomes a design vector consisting only of 1s. The dimension of the design vector $\textbf{X}$ is $mn \times 1$, where $m$ is the number of clusters/groups and $n$ is the number of samples within each group. In our case, the number of samples from each cluster is the same. There is only one random effect, i.e. the random intercept $\gamma_i$, sometimes referred to as $\gamma_{0i}$. There is a random effect for each of the $m$ clusters, so the random effect vector $\mathbf{\gamma} = (\gamma_1,\dots,\gamma_m )^T$ has dimension $m \times 1$. Within each cluster, $n$ samples are taken so there needs to be a $\gamma_i$ included for each of the $n$ samples. To ensure we only include the correct $\gamma_i$ from the vector $\mathbf{\gamma}$, we make a matrix $\mathbf{U}$ that has $n$ $1$s in the column $i$ corresponding to $\gamma_i$. For each $y_{ij}$ there is an error term, which we write in vector form $\mathbf{\epsilon}$. This means we can write the model in matrix form, like this
+
+$$
+\mathbf{y} = \mathbf{X\beta} + \mathbf{U\gamma} + \mathbf{\epsilon}
+$$
+
+```{r, echo=TRUE, eval=TRUE}
+data <- read.csv("https://www.math.ntnu.no/emner/TMA4315/2019h/random-intercept.csv",
+  colClasses=c("numeric","factor"))
+ attach(data)
+```
+
+From the data, we have $m=10$ groups and $n=4$ samples from each group. This makes
+
+$$
+\text{dim}(\mathbf{X}) = 40 \times 1, \quad \text{dim}(\mathbf{U}) = 40 \times 10, \quad \text{dim}(\mathbf{\gamma}) = 10 \times 1 \quad \text{and} \quad \text{dim}(\mathbf{\epsilon}) = 40 \times 1
+$$
+
+Our function 'mylmm' will compute the profile and the restricted log likelihood for the vector of unknown parameters $\theta = (\tau^2,\sigma^2)$, and give us the estimates $\hat\tau^2, \hat\sigma^2$ and $\hat\beta_0$. 
+
+The following is assumed:
+
+$$
+\gamma \sim N(0,\tau^2I), \quad \epsilon \sim N(0, \sigma^2I), \quad y \sim N(X\beta, UGU^T + R) 
+$$
+
+where $G = \tau^2I$, and $R = \sigma^2I$. $X$, $\beta$ and $U$ are as described above. We also denote $V(\theta) = UGU^T + R$.
+
+
+We use also use the following
+
+$$
+\hat{\beta({\theta})} = (X^TV(\theta)^{-1}X)^{-1}X^TV(\theta)^{-1}y
+$$
+
+$$
+V(\theta) = UGU^T + R = \tau^2UU^T + \sigma^2I
+$$
+
+All of the above is used in the calculation of the profile and restricted log likelihood, $l_p(\theta)$ and $l_R(\theta)$ respectively. The ML estimator for $\mathbf{\theta}$ is obtained by maximizing $l_p(\theta)$, and the restricted ML (REML) estimator is obtained by maximizing the $l_R(\theta)$
+
+$$
+l_p(\theta) = -\frac{1}{2}[\log\mid V(\theta)\mid + (y - X\hat\beta(\theta))^TV(\theta)^{-1}(y-X\hat\beta(\theta))]
+$$
+
+$$
+l_R(\theta) = l_p(\theta) - \frac{1}{2}\text{det}(X^TV(\theta)^{-1}X)
+$$
+
+
+
+
+
+Checking our computed estimates against the ones computed by the function 'lmer' 
+
+```{r, eval=TRUE,echo=TRUE}
+lme4::lmer(y ~ (1|group), REML=FALSE) 
+lme4::lmer(y ~ (1|group), REML=TRUE)
+```
+
+
+
+
+
+\newpage
+# Problem 2:

@@ -75,17 +75,91 @@ $$
 $$
 l_R(\theta) = l_p(\theta) - \frac{1}{2}\text{det}(X^TV(\theta)^{-1}X)
 $$
+We present the R code for the lmm function
 
+```{r, eval=TRUE, echo=TRUE}
 
+#The function we are making
+mylmm <- function(y, group, REML) {  #y is vectors, group is grouping factor, when REML = true will add additional term
+  U <- model.matrix(~0 + group)
+  X <- rep(1, 40)
+  
+  V_func <- function(theta) {
+    tau <- theta[1]
+    sigma <- theta[2]
+    return(tau^2*U%*%t(U)+sigma^2 * diag(40))}
+  
+  beta <- function(theta) {
+    V <- V_func(theta)
+    return(solve(t(X) %*% solve(V) %*% X) * t(X) %*% solve(V) %*% y)}
+  
+  likml <- function(theta) { #profile log lik
+    V<-V_func(theta)
+    beta<-beta(theta)
+    -1/2 * (unlist(determinant(x = V, logarithm = TRUE))[1] + t(y - X %*% beta) %*% solve(V) %*% (y - X %*% beta)) 
 
+  }
+  likreml <- function(theta) { #restricted log lik
+    V<-V_func(theta)
+    beta<-beta(theta)
+    whichsign <- unlist(determinant(x = t(X) %*% solve(V) %*% X, logarithm = TRUE))[2]
+    likml(theta) -1/2 * unlist(determinant(x = t(X) %*% solve(V) %*% X, logarithm = TRUE))[1]*whichsign
+  }
+  if (REML== TRUE) {
+    ml <- optim(par = c(1,1), fn = likreml, control=list(fnscale=-1))
+  }
+  else {
+    ml <- optim(par = c(1,1), fn = likml, control=list(fnscale=-1))
+  }
+  beta <- beta(ml$par)
+  estimates <- c(ml$par, beta)
+  names(estimates) <- c("tau","sigma","beta_0") #just to make it clear which is which
+  
+  return(estimates) #estimates of the three model parameters
+}
 
+mylmm(y,group,FALSE) #profile log lik
 
-Checking our computed estimates against the ones computed by the function 'lmer' 
+mylmm(y,group,TRUE) #restricted log lik
+
+```
+
+By squaring the estimated parameters $\tau_0$ and $\sigma$, we attain the variance of the random and fixed effects
+
+```{r}
+c(mylmm(y,group,FALSE)[1]^2, mylmm(y,group,FALSE)[2]^2, mylmm(y,group,FALSE)[3])
+c(mylmm(y,group,TRUE)[1]^2, mylmm(y,group,TRUE)[2]^2, mylmm(y,group,TRUE)[3])
+```
+
+This makes it easier to compare with the built-in functions provided in the problem text.
+
+Checking our computed estimates against the ones computed by the function 'lmer' by
 
 ```{r, eval=TRUE,echo=TRUE}
-lme4::lmer(y ~ (1|group), REML=FALSE) 
-lme4::lmer(y ~ (1|group), REML=TRUE)
+lp <- lme4::lmer(y ~ (1|group), REML=FALSE) #profile log lik
+summary(lp)
+
+
+lr <- lme4::lmer(y ~ (1|group), REML=TRUE) #restricted log lik
+summary(lr)
+
 ```
+
+
+We see that the built-in function gives the following values: 
+
+\textbf{Profile log likelihood :} $\hat\tau_0^2 = 1.706$, $\hat\sigma^2 = 1.372$ and $\hat\beta_0 = 10.4264$, \newline
+while our function gave $\hat\tau_0^2 = 1.707228$, $\hat\sigma^2 = 1.371567$ and $\hat\beta_0 = 10.426443$ 
+
+\textbf{Restricted log likelihood :} $\hat\tau_0^2 = 1.935$, $\hat\sigma^2 = 1.371$ and $\hat\beta_0 = 10.4264$, \newline
+while our function gave $\hat\tau_0^2 = 1.934807$, $\hat\sigma^2 = 1.371434$ and $\hat\beta_0 = 10.426443$
+
+Our function gives approximately the same values as the 'lmer' function. When comparing $l_p$ and $l_R$, we see a little difference in each likelihood's estimate of $\tau_0^2$. 
+
+
+
+
+
 
 
 

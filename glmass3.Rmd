@@ -4,8 +4,8 @@ subtitle: "Compulsory exercise 3: Linear Mixed Models and Generalized Linear Mix
 author: "Liv Elise Herstad, Clara Panchaud and Julie Berg"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
-  # html_document
-  pdf_document
+  html_document
+  #pdf_document
 
 ---
 
@@ -73,7 +73,7 @@ l_p(\theta) = -\frac{1}{2}[\log\mid V(\theta)\mid + (y - X\hat\beta(\theta))^TV(
 $$
 
 $$
-l_R(\theta) = l_p(\theta) - \frac{1}{2}\text{det}(X^TV(\theta)^{-1}X)
+l_R(\theta) = l_p(\theta) - \frac{1}{2}\log\mid X^TV(\theta)^{-1}X \mid
 $$
 We present the R code for the lmm function
 
